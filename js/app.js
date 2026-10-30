@@ -61,7 +61,7 @@
     onb: false, goal: 60, xpDay: {}, goalHit: 0, mist: [], fixed: 0, decks: 0, certs: 0, sound: true, theme: "", av: 0, view: "path" });
   let S = def();
   try { S = Object.assign(def(), JSON.parse(localStorage.getItem(KEY)) || {}) } catch (e) { }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) { } };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)) } catch (e) { } cloudPush() };
   const AVC = ["#16215C", "#DD3B2F", "#2F5BEA", "#17925A", "#B0480F", "#7C3AED", "#0E7C86", "#C2185B"];
   const applyTheme = () => { if (S.theme) document.documentElement.dataset.theme = S.theme; else delete document.documentElement.dataset.theme };
   applyTheme();
@@ -651,6 +651,67 @@
     draw();
   }
 
+  /* ---------- hesab və bulud sinxronu (Supabase) ---------- */
+  const CFG = window.BILGE_CFG || {}, SB = CFG.url && CFG.key && window.supabase ? window.supabase.createClient(CFG.url, CFG.key) : null;
+  let USER = null, pushT = null, pulling = false;
+  function cloudPush() { if (!SB || !USER || pulling) return; clearTimeout(pushT); pushT = setTimeout(async () => { try { await SB.from("progress").upsert({ user_id: USER.id, data: S, updated_at: new Date().toISOString() }) } catch (e) { } }, 1500) }
+  function merge(a, b) { // a = yerli, b = bulud
+    const o = Object.assign(def(), b, a), mx = k => o[k] = Math.max(a[k] || 0, b[k] || 0);
+    ["xp", "tests", "perfect", "correct", "answered", "blitz", "mem", "tf", "goalHit", "fixed", "decks", "certs"].forEach(mx);
+    o.days = [...new Set([...(a.days || []), ...(b.days || [])])].sort().slice(-400);
+    o.done = Object.assign({}, b.done); for (const [t, v] of Object.entries(a.done || {})) { o.done[t] = Object.assign({}, o.done[t]); for (const [l, p] of Object.entries(v)) o.done[t][l] = Math.max(p, o.done[t][l] || 0) }
+    o.subj = Object.assign({}, b.subj); for (const [k, v] of Object.entries(a.subj || {})) if (!o.subj[k] || v.t > o.subj[k].t) o.subj[k] = v;
+    o.xpDay = Object.assign({}, b.xpDay); for (const [k, v] of Object.entries(a.xpDay || {})) o.xpDay[k] = Math.max(v, o.xpDay[k] || 0);
+    o.daily = Object.assign({}, b.daily, a.daily);
+    const seen = new Set(); o.mist = [...(b.mist || []), ...(a.mist || [])].filter(m => !seen.has(m.q) && seen.add(m.q)).slice(-150);
+    ["name", "grade", "last", "theme"].forEach(k => o[k] = a[k] || b[k] || o[k]); o.onb = !!(a.onb || b.onb);
+    return o;
+  }
+  async function cloudPull() {
+    if (!SB || !USER) return; pulling = true;
+    try { const { data } = await SB.from("progress").select("data").eq("user_id", USER.id).maybeSingle(); if (data && data.data) S = merge(S, data.data); const nm = USER.user_metadata && USER.user_metadata.name; if (nm && !S.name) S.name = nm; S.onb = true } catch (e) { }
+    pulling = false; save(); applyTheme(); hud(); route();
+  }
+  function acctBtn() { const b = $("#hacct"); if (!b) return; b.innerHTML = USER ? `<span class="mini" style="background:${AVC[S.av] || AVC[0]}">${esc((S.name || USER.email || "?")[0].toLocaleUpperCase("az"))}</span>` : `${I("user")}<span>Daxil ol</span>`; b.classList.toggle("in", !!USER); b.title = USER ? USER.email : "Daxil ol / Qeydiyyat" }
+  function authModal(mode = "in") {
+    if ($(".modal")) return; const m = document.createElement("div"); m.className = "modal"; document.body.appendChild(m);
+    const draw = (msg = "", bad = false) => {
+      m.innerHTML = `<div class="box auth" role="dialog" aria-modal="true" aria-label="Hesab"><button class="qx mx" type="button" data-x aria-label="Bağla">${I("close")}</button>
+        <div class="onb-ic">${I("user")}</div><h3>${mode === "up" ? "Hesab yarat" : mode === "reset" ? "Şifrəni bərpa et" : "Xoş gördük!"}</h3>
+        <p>${mode === "reset" ? "E-poçtunu yaz, bərpa linki göndərək." : "Nəticələrin buludda saxlanır: telefon və kompüterdə eyni XP, ulduz və nişanlar."}</p>
+        ${SB ? `<form id="af" class="aform">${mode === "up" ? `<label class="fld">Adın<input name="n" maxlength="24" value="${esc(S.name)}" required autocomplete="name"></label>` : ""}
+          <label class="fld">E-poçt<input name="e" type="email" required autocomplete="email"></label>
+          ${mode !== "reset" ? `<label class="fld">Şifrə<input name="p" type="password" minlength="6" required autocomplete="${mode === "up" ? "new-password" : "current-password"}" placeholder="ən azı 6 simvol"></label>` : ""}
+          ${msg ? `<div class="amsg ${bad ? "bad" : ""}">${esc(msg)}</div>` : ""}
+          <button class="btn pen wide" type="submit">${mode === "up" ? "Qeydiyyatdan keç" : mode === "reset" ? "Link göndər" : "Daxil ol"}</button></form>
+          <div class="aswitch">${mode === "in" ? `<button type="button" class="lnk" data-m="up">Hesabın yoxdur? Qeydiyyat</button><button type="button" class="lnk" data-m="reset" style="color:var(--mut)">Şifrəni unutdum</button>` : `<button type="button" class="lnk" data-m="in">Hesabın var? Daxil ol</button>`}</div>`
+        : `<div class="amsg bad">Hesab sistemi hələ qoşulmayıb. Nəticələrin bu brauzerdə saxlanır.</div>`}</div>`;
+      const f = $("#af", m); if (f) { $("input", f).focus(); f.onsubmit = async e => {
+        e.preventDefault(); const fd = new FormData(f), em = String(fd.get("e") || "").trim(), pw = String(fd.get("p") || ""), btn = $("button[type=submit]", f); btn.disabled = true; btn.textContent = "Gözlə…";
+        try {
+          if (mode === "up") { const nm = String(fd.get("n") || "").trim().slice(0, 24); const { data, error } = await SB.auth.signUp({ email: em, password: pw, options: { data: { name: nm }, emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; if (nm) { S.name = nm; save() } if (!data.session) return draw("Təsdiq linkini e-poçtuna göndərdik. Linkə bas, sonra daxil ol.") }
+          else if (mode === "reset") { const { error } = await SB.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname }); if (error) throw error; return draw("Bərpa linki göndərildi. E-poçtunu yoxla.") }
+          else { const { error } = await SB.auth.signInWithPassword({ email: em, password: pw }); if (error) throw error }
+          m.remove();
+        } catch (err) { const t = String(err.message || err); draw(/Invalid login/i.test(t) ? "E-poçt və ya şifrə yanlışdır." : /already registered/i.test(t) ? "Bu e-poçtla hesab artıq var. Daxil ol." : /Email not confirmed/i.test(t) ? "E-poçtu hələ təsdiqləməmisən. Gələn qutunu yoxla." : /rate limit/i.test(t) ? "Çox cəhd oldu, bir az sonra yenə yoxla." : "Xəta: " + t, true) }
+      } }
+    };
+    m.onclick = e => { if (e.target === m || e.target.closest("[data-x]")) m.remove(); const sw = e.target.closest("[data-m]"); if (sw) { mode = sw.dataset.m; draw() } };
+    draw();
+  }
+  async function newPassword() {
+    const m = document.createElement("div"); m.className = "modal"; document.body.appendChild(m);
+    m.innerHTML = `<div class="box auth" role="dialog" aria-modal="true"><h3>Yeni şifrə</h3><form id="npf" class="aform"><label class="fld">Yeni şifrə<input name="p" type="password" minlength="6" required autocomplete="new-password"></label><button class="btn pen wide" type="submit">Saxla</button></form></div>`;
+    $("#npf", m).onsubmit = async e => { e.preventDefault(); const { error } = await SB.auth.updateUser({ password: new FormData(e.target).get("p") }); m.remove(); toast(error ? "Xəta: " + error.message : "Şifrə yeniləndi") };
+  }
+  if (SB) {
+    SB.auth.onAuthStateChange((ev, ses) => {
+      const was = USER; USER = ses ? ses.user : null; acctBtn();
+      if (ev === "PASSWORD_RECOVERY") newPassword();
+      if (USER && (!was || was.id !== USER.id)) { cloudPull(); if (ev === "SIGNED_IN") toast("Hesaba daxil oldun · nəticələr sinxronlaşdı") }
+    });
+  }
+
   /* ---------- profil ---------- */
   function heatmap() {
     const set = new Set(S.days), d = new Date(); d.setDate(d.getDate() - (d.getDay() + 6) % 7 - 16 * 7); const cells = [];
@@ -675,6 +736,7 @@
           <label class="srow"><span>${I("moon")} Mövzu</span><select id="pth"><option value="" ${!S.theme ? "selected" : ""}>Sistem</option><option value="light" ${S.theme === "light" ? "selected" : ""}>Açıq</option><option value="dark" ${S.theme === "dark" ? "selected" : ""}>Qaranlıq</option></select></label>
           <label class="srow"><span>${I("vol")} Səs effektləri</span><input type="checkbox" class="tgl" id="psnd" ${S.sound ? "checked" : ""}></label>
         </div>
+        <div class="acard">${USER ? `<span>${I("check")} ${esc(USER.email)}</span><small>Nəticələr buludda saxlanır</small><button class="btn ghost sm wide" type="button" id="pout">Çıxış et</button>` : `<span>${I("user")} Hesab yoxdur</span><small>Daxil ol ki, nəticələrin itməsin və bütün cihazlarda görünsün</small><button class="btn sm wide" type="button" id="pin">Daxil ol / Qeydiyyat</button>`}</div>
         <a class="btn ghost sm wide" href="#sehvler" style="margin-top:12px">${I("note")} Səhvlər dəftəri (${S.mist.length})</a>
         <button class="btn ghost sm wide" type="button" id="preset" style="margin-top:10px">Nəticələri sıfırla</button>
       </div>
@@ -686,6 +748,8 @@
         <div class="card" style="padding:8px 20px">${subs.length ? subs.map(x => { const v = S.subj[x.id], p = Math.round(v.c / v.t * 100); return `<div class="prow" style="--c:${x.c}"><span class="ic">${I(x.ic)}</span><div><b>${esc(x.n)}</b><div class="bar" style="margin-top:6px"><i style="width:${p}%"></i></div></div><span>${p}%</span></div>` }).join("") : `<p class="empty">Hələ test yoxdur. İlk testini bitir, statistika burada görünəcək.</p>`}</div></div>
       </div></div>`;
     $("#pname").onchange = e => { S.name = e.target.value.trim().slice(0, 24); save(); viewProfile() };
+    const po = $("#pout"); if (po) po.onclick = () => confirmBox("Hesabdan çıxırsan?", "Nəticələr buludda qalır, yenidən daxil olanda geri gələcək.", "Çıxış et", async () => { await SB.auth.signOut(); S = def(); S.onb = true; save(); hud(); viewProfile(); toast("Hesabdan çıxdın") });
+    const pi = $("#pin"); if (pi) pi.onclick = () => authModal("in");
     $("#avsw").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.av = +b.dataset.a; save(); viewProfile() };
     $("#pgoal").onchange = e => { S.goal = +e.target.value; save(); hud(); toast("Günlük hədəf: " + S.goal + " XP") };
     $("#pth").onchange = e => { S.theme = e.target.value; save(); applyTheme(); hud() };
@@ -696,8 +760,9 @@
   /* ---------- başlanğıc ---------- */
   const hs = $("#hsearch"); if (hs) hs.onclick = openSearch;
   const ht = $("#htheme"); if (ht) ht.onclick = () => { S.theme = isDark() ? "light" : "dark"; save(); applyTheme(); hud() };
-  hud();
-  if (!S.onb) setTimeout(onboarding, 350);
+  const ha = $("#hacct"); if (ha) ha.onclick = () => USER ? go("profil") : authModal("in");
+  acctBtn(); hud();
+  if (!S.onb && !/access_token|type=recovery/.test(location.hash)) setTimeout(onboarding, 350);
   window.addEventListener("hashchange", route);
   route();
 })();

@@ -413,3 +413,12 @@ a.dc:hover{transform:translateY(-3px);box-shadow:var(--sh-2)}
 @media (max-width:760px){.dash{grid-template-columns:1fr;gap:10px}.dc.goal .ring{width:64px;height:64px}.top .wrap{gap:8px}.pn{width:150px}.pn .orb{width:64px;height:64px}.mstat{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.heat i{width:11px;height:11px;border-radius:3px}.heat{gap:3px}.fcact .btn{font-size:14px;padding:0 10px}}
 
 .chint{font-size:13px;color:var(--mut);font-weight:700;margin-right:auto;align-self:center}
+.hbtn.acct span{font-size:14px}.hbtn.acct.in{padding:0 3px;min-width:36px}
+.hbtn .mini{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 14px var(--f-d)}
+.box.auth{max-width:420px;text-align:center;position:relative}.auth h3{font-size:26px}.auth p{margin:6px 0 16px;color:var(--ink-2)}
+.aform{display:grid;gap:12px;text-align:left}.aform .fld input{width:100%}
+.amsg{padding:10px 12px;border-radius:12px;background:var(--ok-soft);color:var(--ink);font-weight:700;font-size:14px;text-align:left}.amsg.bad{background:var(--pen-soft)}
+.aswitch{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px}
+.acard{display:grid;gap:4px;text-align:left;margin-top:14px;padding:12px;border-radius:14px;background:var(--soft)}
+.acard span{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;overflow-wrap:anywhere}.acard span svg{width:18px;height:18px;flex:none}.acard small{color:var(--mut);font-weight:700;font-size:12.5px;margin-bottom:6px}
+@media (max-width:760px){.hbtn.acct:not(.in) span{display:none}}
