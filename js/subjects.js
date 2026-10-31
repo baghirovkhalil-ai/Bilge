@@ -19,9 +19,12 @@ window.B = (function () {
     { id: "iqtisad", n: "İqtisadiyyat", c: "#8A6A12", g: [1, 3], grp: "pro", ic: "chart", d: "Bazar, qiymət, inflyasiya" },
     { id: "excel", n: "Excel və ofis", c: "#1D7044", g: [1, 3], grp: "pro", ic: "grid", d: "Düsturlar, cədvəllər, hesabat" },
   ];
-  const LVL = { 1: "Başlanğıc", 2: "Orta", 3: "Çətin" };
-  const PRO_LVL = { 1: "Başlanğıc", 2: "Orta", 3: "Peşəkar" };
+  const LVL = { 1: "Başlanğıc", 2: "Orta", 3: "Çətin", 4: "Ekspert" };
+  const PRO_LVL = { 1: "Başlanğıc", 2: "Orta", 3: "Peşəkar", 4: "Ekspert" };
   const T = {}; // T[subject][grade] = [topic]
   function add(s, g, topic) { ((T[s] = T[s] || {})[g] = T[s][g] || []).push(Object.assign({ id: s + "-" + g + "-" + ((T[s][g].length) + 1), s, g }, topic)) }
-  return { SUBJECTS, LVL, PRO_LVL, T, add, sub: id => SUBJECTS.find(x => x.id === id) };
+  // more(fənn, mövzu adı, sual[]) — mövzuya güclü suallar əlavə edir; köhnə "çətin" trivia "orta"ya keçir
+  function more(s, title, qs) { const t = Object.values(T[s] || {}).flat().find(x => x.t === title); if (!t) { console.warn("Bilgə: mövzu tapılmadı", s, title); return }
+    if (!t.up) { (t.Q || []).forEach(q => { if (q[0] === 3) q[0] = 2 }); t.up = 1 } t.Q = (t.Q || []).concat(qs) }
+  return { SUBJECTS, LVL, PRO_LVL, T, add, more, sub: id => SUBJECTS.find(x => x.id === id) };
 })();

@@ -140,11 +140,13 @@
     if (Array.isArray(q)) { const o = shuffle(q[2]); return { q: q[1], o, a: o.indexOf(q[2][0]), e: q[3], l: q[0], s } }
     const o = q.o.map((x, i) => ({ x, i })), sh = shuffle(o); return { q: q.q, o: sh.map(x => x.x), a: sh.findIndex(x => x.i === q.a), e: q.e, l: q.l, s };
   }
-  function genQ(t, l) { const g = GEN[t.gen]; return norm(Object.assign(g(l), { l }), t.s) }
+  function genQ(t, l) { const g = l === 4 && window.GEN4[t.gen] ? GEN4[t.gen] : GEN[t.gen]; return norm(Object.assign(g(Math.min(l, 3)), { l }), t.s) }
+  const has4 = t => t.gen ? !!window.GEN4[t.gen] : (t.Q || []).some(q => q[0] === 4);
+  const maxL = t => has4(t) ? 4 : 3;
   function buildTopicQuiz(t, l) {
-    if (t.gen) { const N = l === 4 ? 15 : 10, out = [], seen = new Set(); let k = 0; while (out.length < N && k++ < 90) { const q = genQ(t, l === 4 ? 1 + (out.length % 3) : l); if (!seen.has(q.q)) { seen.add(q.q); out.push(q) } } return out }
+    if (t.gen) { const N = l === 5 ? 15 : 10, out = [], seen = new Set(); let k = 0; while (out.length < N && k++ < 90) { const q = genQ(t, l === 5 ? 1 + (out.length % maxL(t)) : l); if (!seen.has(q.q)) { seen.add(q.q); out.push(q) } } return out }
     const by = n => t.Q.filter(q => q[0] === n);
-    let set = l === 1 ? [...by(1), ...shuffle(by(2)).slice(0, 1)] : l === 2 ? [...shuffle(by(1)).slice(0, 1), ...by(2), ...shuffle(by(3)).slice(0, 1)] : l === 3 ? [...by(2), ...by(3)] : t.Q;
+    let set = l === 1 ? [...by(1), ...shuffle(by(2)).slice(0, 2)] : l === 2 ? [...shuffle(by(1)).slice(0, 1), ...by(2), ...shuffle(by(3)).slice(0, 1)] : l === 3 ? [...shuffle(by(2)).slice(0, 2), ...by(3), ...shuffle(by(4)).slice(0, 1)] : l === 4 ? [...shuffle(by(3)).slice(0, 2), ...by(4)] : t.Q;
     return shuffle(set).map(q => norm(q, t.s));
   }
 
@@ -299,11 +301,11 @@
     const X = [0, 70, 100, 70, 0, -70, -100, -70]; let n = 0;
     return `<div class="path">${gs.map(k => `<section class="pg" id="pg-${k}"><div class="pgh"><span>${esc(gLabel(id, k))}</span><small>${topicsOf(id, k).filter(t => topicStars(t.id) === 3).length}/${topicsOf(id, k).length} tamam</small></div>
       ${topicsOf(id, k).map(t => { const st = topicStars(t.id), x = X[n++ % 8], here = cur && cur.id === t.id;
-        return `<a class="pn ${st === 3 ? "full" : st ? "part" : ""} ${here ? "here" : ""}" href="#t-${t.id}" style="--x:${x}px">${here ? `<span class="you">Sən buradasan</span>` : ""}<span class="orb">${st === 3 ? I("check") : t.gen ? I("bolt") : n}</span><span class="pst">${[1, 2, 3].map(l => STAR(best(t.id, l) >= 80)).join("")}</span><b>${esc(t.t)}</b></a>` }).join("")}</section>`).join("")}</div>`;
+        return `<a class="pn ${st === 3 ? "full" : st ? "part" : ""} ${here ? "here" : ""}" href="#t-${t.id}" style="--x:${x}px">${here ? `<span class="you">Sən buradasan</span>` : ""}<span class="orb">${st === 3 ? I("check") : t.gen ? I("bolt") : n}</span><span class="pst">${(has4(t) ? [1, 2, 3, 4] : [1, 2, 3]).map(l => STAR(best(t.id, l) >= 80)).join("")}</span><b>${esc(t.t)}</b></a>` }).join("")}</section>`).join("")}</div>`;
   }
   function topicCard(t) {
     const n = t.gen ? "Sonsuz test" : t.Q.length + " sual";
-    return `<article class="card topic"><div class="row"><span class="pill">${esc(gLabel(t.s, t.g))}</span><span class="pill">${n}</span><span class="stars" style="margin-left:auto" aria-label="${topicStars(t.id)} ulduz">${[1, 2, 3].map(l => STAR(best(t.id, l) >= 80)).join("")}</span></div>
+    return `<article class="card topic"><div class="row"><span class="pill">${esc(gLabel(t.s, t.g))}</span><span class="pill">${n}</span><span class="stars" style="margin-left:auto" aria-label="${topicStars(t.id)} ulduz">${(has4(t) ? [1, 2, 3, 4] : [1, 2, 3]).map(l => STAR(best(t.id, l) >= 80)).join("")}</span></div>
       <h3>${esc(t.t)}</h3><p style="color:var(--mut)">${esc(t.L.p.slice(0, 110))}${t.L.p.length > 110 ? "…" : ""}</p>
       <div class="row"><a class="btn sm" href="#t-${t.id}">Dərsi oxu ${I("arrow")}</a><button class="btn ghost sm" type="button" data-quiz="${t.id}" data-l="1">Testə başla</button></div></article>`;
   }
@@ -327,8 +329,8 @@
         </article>
         <aside class="side">
           <div class="card" style="padding:20px"><h3 style="font-size:20px;margin-bottom:4px">Özünü yoxla</h3><p style="color:var(--mut);font-size:15px">Səviyyəni seç. 80% və yuxarı nəticə ulduz qazandırır.</p></div>
-          ${[1, 2, 3].map(l => `<button type="button" class="lvl l${l}" data-quiz="${t.id}" data-l="${l}"><span class="n">${l}</span><span><b>${LV[l]}</b><small>${cnt(l)} sual${best(t.id, l) ? " · ən yaxşı: " + best(t.id, l) + "%" : ""}</small></span><span class="stars">${STAR(best(t.id, l) >= 80)}</span></button>`).join("")}
-          <button type="button" class="lvl" data-quiz="${t.id}" data-l="4"><span class="n" style="background:var(--ink);color:var(--paper)">${I("exam")}</span><span><b>Tam test</b><small>${t.gen ? "15 qarışıq sual" : t.Q.length + " sual, bütün səviyyələr"}</small></span></button>
+          ${(has4(t) ? [1, 2, 3, 4] : [1, 2, 3]).map(l => `<button type="button" class="lvl l${l}" data-quiz="${t.id}" data-l="${l}"><span class="n">${l}</span><span><b>${LV[l]}</b><small>${cnt(l)} sual${best(t.id, l) ? " · ən yaxşı: " + best(t.id, l) + "%" : ""}</small></span><span class="stars">${STAR(best(t.id, l) >= 80)}</span></button>`).join("")}
+          <button type="button" class="lvl" data-quiz="${t.id}" data-l="5"><span class="n" style="background:var(--ink);color:var(--paper)">${I("exam")}</span><span><b>Tam test</b><small>${t.gen ? "15 qarışıq sual" : t.Q.length + " sual, bütün səviyyələr"}</small></span></button>
           <a class="lvl" href="#kart-${t.id}"><span class="n" style="background:var(--gold-soft);color:#B07800">${I("cards")}</span><span><b>Fleş kartlar</b><small>Sualı gör, cavabı xatırla, kartı çevir</small></span></a>
           ${t.gen ? `<div class="card" style="padding:16px 18px;font-size:14.5px;color:var(--ink-2)">${I("bolt")} Bu mövzuda suallar hər dəfə yenidən yaranır, testi istədiyin qədər təkrarlaya bilərsən.</div>` : ""}
         </aside>
@@ -396,7 +398,7 @@
       save(); gain(Q.xp + bonus, "test bitdi");
     }
     const mist = Q.qs.map((q, i) => ({ q, a: Q.ans[i] })).filter(r => r.a !== r.q.a);
-    const certOk = (Q.level === 4 || Q.exam) && pct >= 90 && Q.qs.length >= 6;
+    const certOk = (Q.level === 5 || Q.exam) && pct >= 90 && Q.qs.length >= 6;
     if (!Q.fx) { Q.fx = true; if (pct >= 90) { confetti(); beep("win") } if (certOk) { S.certs++; save() } }
     app.innerHTML = `<div class="view"><div class="card res grid-bg">
       <div class="grade">${ringSvg}<b>${grade}</b></div>
@@ -405,7 +407,7 @@
       <div class="gain"><span class="chip xp">${I("star")}+${Q.xp + bonus} XP</span>${starMsg ? `<span class="chip">${STAR(true)} ${starMsg}</span>` : ""}<span class="chip fire">${I("fire")}${streak()} gün seriya</span></div>
       ${Q.mistMode ? `<p class="sum" style="margin-top:-6px">${Q.fixedNow || 0} sual dəftərdən silindi · ${S.mist.length} qaldı</p>` : ""}
       ${certOk ? `<div class="certbar">${I("medal")}<div><b>Sertifikat qazandın!</b><span>${pct}% nəticə ilə. Adınla yüklə və paylaş.</span></div><button class="btn sm" type="button" id="cert">Sertifikatı aç</button></div>` : ""}
-      <div class="acts">${Q.mistMode ? `${S.mist.length ? `<button class="btn pen" type="button" id="mre">Davam et</button>` : ""}<a class="btn ghost" href="#sehvler">Səhvlər dəftəri</a><a class="btn ghost" href="#home">Ana səhifə</a>` : Q.topic ? `<button class="btn" type="button" id="again">Yenidən</button>${Q.level < 3 ? `<button class="btn pen" type="button" id="up">Növbəti səviyyə ${I("arrow")}</button>` : ""}<a class="btn ghost" href="#t-${Q.topic.id}">Dərsə qayıt</a>` : `<a class="btn" href="#imtahan">Yeni imtahan</a><a class="btn ghost" href="#home">Ana səhifə</a>`}</div>
+      <div class="acts">${Q.mistMode ? `${S.mist.length ? `<button class="btn pen" type="button" id="mre">Davam et</button>` : ""}<a class="btn ghost" href="#sehvler">Səhvlər dəftəri</a><a class="btn ghost" href="#home">Ana səhifə</a>` : Q.topic ? `<button class="btn" type="button" id="again">Yenidən</button>${Q.level < maxL(Q.topic) ? `<button class="btn pen" type="button" id="up">Növbəti səviyyə ${I("arrow")}</button>` : ""}<a class="btn ghost" href="#t-${Q.topic.id}">Dərsə qayıt</a>` : `<a class="btn" href="#imtahan">Yeni imtahan</a><a class="btn ghost" href="#home">Ana səhifə</a>`}</div>
       ${mist.length ? `<div class="review"><h3 style="font-size:20px">Səhvlər üzərində iş (${mist.length})</h3>${mist.map(r => `<div class="rv"><b>${esc(r.q.q)}</b><div class="a">${r.a >= 0 ? `<s>${esc(r.q.o[r.a])}</s> → ` : "Cavab verilmədi → "}<span>${esc(r.q.o[r.q.a])}</span></div>${r.q.e ? `<div class="a" style="color:var(--mut);margin-top:4px">${esc(r.q.e)}</div>` : ""}</div>`).join("")}</div>` : ""}
     </div></div>`;
     const cb = $("#cert"); if (cb) cb.onclick = () => certificate(Q.topic ? Q.topic.t : Q.title.replace(/^İmtahan · /, B.sub(Q.s).n + " · "), pct, grade);
@@ -618,7 +620,7 @@
     const draw = () => {
       const q = low(inp.value.trim()); list = q ? all.filter(t => low(t.t + " " + B.sub(t.s).n + " " + gLabel(t.s, t.g)).includes(q)).slice(0, 30) : (S.last && findTopic(S.last) ? [findTopic(S.last)] : []).concat(all.filter(t => t.g === S.grade).slice(0, 8));
       sel = Math.min(sel, Math.max(0, list.length - 1));
-      res.innerHTML = list.length ? list.map((t, i) => { const x = B.sub(t.s); return `<a href="#t-${t.id}" class="sr ${i === sel ? "on" : ""}" style="--c:${x.c}"><span class="ic">${I(x.ic)}</span><span><b>${esc(t.t)}</b><small>${esc(x.n)} · ${esc(gLabel(t.s, t.g))}</small></span><span class="pst">${[1, 2, 3].map(l => STAR(best(t.id, l) >= 80)).join("")}</span></a>` }).join("") : `<p class="empty" style="padding:28px">${q ? "Heç nə tapılmadı. Başqa söz yoxla." : "Yazmağa başla: məs., “kəsr”, “Nizami”, “HTML”."}</p>`;
+      res.innerHTML = list.length ? list.map((t, i) => { const x = B.sub(t.s); return `<a href="#t-${t.id}" class="sr ${i === sel ? "on" : ""}" style="--c:${x.c}"><span class="ic">${I(x.ic)}</span><span><b>${esc(t.t)}</b><small>${esc(x.n)} · ${esc(gLabel(t.s, t.g))}</small></span><span class="pst">${(has4(t) ? [1, 2, 3, 4] : [1, 2, 3]).map(l => STAR(best(t.id, l) >= 80)).join("")}</span></a>` }).join("") : `<p class="empty" style="padding:28px">${q ? "Heç nə tapılmadı. Başqa söz yoxla." : "Yazmağa başla: məs., “kəsr”, “Nizami”, “HTML”."}</p>`;
       if (!q && list.length) res.insertAdjacentHTML("afterbegin", `<div class="slab">${S.last ? "Son baxdığın və sinfinə uyğun" : "Sinfinə uyğun"}</div>`);
     };
     const close = () => m.remove();

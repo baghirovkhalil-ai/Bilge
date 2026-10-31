@@ -120,7 +120,54 @@
       if (l === 3) { const k = R(1, 6), A = R(1, 4); return { q: `∫₀^${A} ${2 * k}x dx = ?`, ...mc(k * A * A, [2 * k * A, k * A, 2 * k * A * A]), e: `İbtidai: ${k}x². ${k}·${A}² − 0 = ${k * A * A}.` } }
       return { q: `∫ ${a * (n + 1)}x${sup(n)} dx = ?`.replace("x¹ ", "x "), ...mc(`${a}x${sup(n + 1)} + C`, [`${a * (n + 1) * n}x${sup(n - 1)} + C`, `${a * (n + 1)}x${sup(n + 1)} + C`, `${a}x${sup(n)} + C`], x => x.replace(/x¹ /, "x ").replace(/x⁰ /, "")), e: `∫xⁿdx = xⁿ⁺¹/(n+1) + C: ${a * (n + 1)}/${n + 1} = ${a}.` } },
   };
+
+  /* Ekspert (4-cü səviyyə): buraxılış / olimpiada tipli çoxaddımlı məsələlər */
+  const G4 = {
+    pct() { const p = pick([10, 20, 25, 30, 50]), n = R(2, 20) * 100, r = n * (1 + p / 100) * (1 - p / 100);
+      return { q: `Malın qiyməti ${n} AZN idi. Əvvəl ${p}% bahalaşdı, sonra yeni qiymət ${p}% ucuzlaşdı. Son qiymət?`, ...mc(r, [n, n * (1 + p / 100), n * (1 - p / 100)]), e: `${n} · ${fmt(1 + p / 100)} · ${fmt(1 - p / 100)} = ${fmt(r)}. Eyni faiz geri qaytarmır — ilkin qiymətdən ${fmt(n * p * p / 10000)} AZN az alınır.` } },
+    frac() { const b = pick([2, 3, 4, 5]), d = pick([3, 4, 6].filter(x => x !== b)), a = R(1, b - 1), c = R(1, d - 1), e = R(1, 4), f = pick([3, 5, 7]);
+      const N = (a * d + c * b) * f, D = b * d * e;
+      return { q: `(${a}/${b} + ${c}/${d}) : ${e}/${f} = ?`, ...mc(frac(N, D), [frac(a + c, b + d), frac((a * d + c * b) * e, b * d * f), frac(N + D, D)], x => x), e: `Mötərizə: ${frac(a * d + c * b, b * d)}. Kəsrə bölmək = tərsinə vurmaq: × ${f}/${e} = ${frac(N, D)}.` } },
+    lin() { const x = R(-6, 9), a = R(2, 7), c = pick([1, 2, 3, 4, 5, 6, 8, 9].filter(k => k !== a)), b = R(1, 6), d = R(1, 6), e = a * (x - b) - c * (x + d);
+      return { q: `Tənliyi həll edin: ${a}(x − ${b}) − ${c}(x + ${d}) = ${e}`, ...mc(x, [-x, x + 1, x - 2]), e: `${a}x − ${a * b} − ${c}x − ${c * d} = ${e} → ${a - c}x = ${e + a * b + c * d} → x = ${x}.` } },
+    quad() { const x1 = R(-6, 6), x2 = R(-6, 6), S = x1 + x2, P = x1 * x2, b = -S, c = P;
+      const eq = `x²${b ? (b > 0 ? " + " + (b === 1 ? "" : b) + "x" : " − " + (b === -1 ? "" : -b) + "x") : ""}${c ? (c > 0 ? " + " + c : " − " + -c) : ""} = 0`;
+      return { q: `${eq} tənliyinin kökləri x₁ və x₂-dir. x₁² + x₂² = ?`, ...mc(S * S - 2 * P, [S * S + 2 * P, S * S, S * S - P]), e: `Viyet: x₁ + x₂ = ${S}, x₁x₂ = ${P}. x₁² + x₂² = (x₁ + x₂)² − 2x₁x₂ = ${S * S} − ${2 * P} = ${S * S - 2 * P}.` } },
+    ineq() { const a = R(-6, 4), b = a + R(1, 7), s = -(a + b), p = a * b;
+      const ex = `x²${s ? (s > 0 ? " + " + (s === 1 ? "" : s) + "x" : " − " + (s === -1 ? "" : -s) + "x") : ""}${p ? (p > 0 ? " + " + p : " − " + -p) : ""}`;
+      return { q: `Bərabərsizliyin tam həllərinin sayı: ${ex} < 0`, ...mc(b - a - 1, [b - a + 1, b - a, Math.max(0, b - a - 2)]), e: `Köklər ${a} və ${b}; parabolanın qolları yuxarıdır → ${a} < x < ${b}. Tam ədədlər: ${b - a - 1}.` } },
+    pyth() { const T = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15], [8, 15, 17]], [a, b, c] = pick(T);
+      return { q: `Rombun diaqonalları ${2 * a} və ${2 * b}-dir. Rombun perimetri neçədir?`, ...mc(4 * c, [2 * (a + b) * 2, 4 * (a + b), c * c]), e: `Diaqonallar perpendikulyar və yarıya bölünür: tərəf = √(${a}² + ${b}²) = ${c}. P = 4 · ${c} = ${4 * c}.` } },
+    arith() { const a = R(-10, 15), d = R(-5, 7) || 3, m = R(2, 6), k = m + R(3, 8);
+      const am = a + (m - 1) * d, ak = a + (k - 1) * d;
+      return { q: `Ədədi silsilədə a${toSub(m)} = ${am}, a${toSub(k)} = ${ak}. a₁ = ?`, ...mc(a, [d, am - d, a + d]), e: `d = (${ak} − ${am}) / (${k} − ${m}) = ${d}. a₁ = a${toSub(m)} − ${m - 1}d = ${a}.` } },
+    geom() { const b = R(1, 5), q = pick([2, 3]);
+      return { q: `Həndəsi silsilədə b₂ = ${b * q}, b₄ = ${b * q ** 3}, q > 0. Silsilənin ilk 4 həddinin cəmi?`, ...mc(b * (q ** 4 - 1) / (q - 1), [b * q ** 4, b * q * 4, b * (q ** 3 - 1) / (q - 1)]), e: `q² = b₄/b₂ = ${q * q} → q = ${q}, b₁ = ${b}. S₄ = ${b}(${q}⁴ − 1)/(${q} − 1) = ${b * (q ** 4 - 1) / (q - 1)}.` } },
+    pow() { const x = R(1, 6), k = pick([1, 2, 3]), V = (2 ** k + 1) * 2 ** x;
+      return { q: `Tənliyi həll edin: 2ˣ⁺${sup(k)} + 2ˣ = ${V}`, ...mc(x, [x + 1, x - 1, x + k]), e: `2ˣ(2${sup(k)} + 1) = ${V} → 2ˣ = ${2 ** x} → x = ${x}.` } },
+    log() { const n = R(2, 5), a = R(-3, 6), x = 2 ** n + a;
+      return { q: `Tənliyi həll edin: log₂(x ${a >= 0 ? "− " + a : "+ " + -a}) = ${n}`, ...mc(x, [2 ** n, 2 * n + a, x + 1]), e: `x ${a >= 0 ? "− " + a : "+ " + -a} = 2${sup(n)} = ${2 ** n} → x = ${x}. Yoxlama: ifadə müsbətdir.` } },
+    sqrt() { const a = R(5, 40), b = R(2, a - 1);
+      return { q: `(√${a} + √${b})(√${a} − √${b}) = ?`, ...mc(a - b, [a + b, Math.round(Math.sqrt(a - b) * 100) / 100, (a - b) * 2]), e: `Kvadratlar fərqi: (√${a})² − (√${b})² = ${a} − ${b} = ${a - b}.` } },
+    deriv() { const k = R(-5, 6), c = R(-10, 20);
+      return { q: `f(x) = x² ${k > 0 ? "− " + 2 * k : "+ " + -2 * k}x ${c >= 0 ? "+ " + c : "− " + -c} funksiyasının ən kiçik qiyməti?`.replace(" + 0x", "").replace(" − 0x", ""), ...mc(c - k * k, [c, c + k * k, -k]), e: `f′(x) = 2x − ${2 * k} = 0 → x = ${k}. f(${k}) = ${k * k} − ${2 * k * k} + ${c} = ${c - k * k}.` } },
+    integ() { const a = pick([3, 6]);
+      return { q: `y = x² parabolası, Ox oxu və x = ${a} düz xətti ilə hüdudlanan fiqurun sahəsi?`, ...mc(a ** 3 / 3, [a ** 3, a * a, a ** 3 / 2]), e: `S = ∫₀^${a} x² dx = ${a}³/3 = ${a ** 3 / 3}.` } },
+    trig() { const [a, b, c] = pick([[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]]);
+      return { q: `sin α = ${a}/${c}, α — I rüb bucağıdır. tg α = ?`, ...mc(frac(a, b), [frac(b, a), frac(a, c), frac(b, c)], x => x), e: `cos α = √(1 − ${a * a}/${c * c}) = ${b}/${c}. tg α = sin/cos = ${a}/${b}.` } },
+    prob() { const s = R(4, 10), w = [...Array(6)].flatMap((_, i) => [...Array(6)].map((_, j) => i + j + 2)).filter(x => x === s).length;
+      return { q: `İki zər atılır. Xalların cəminin ${s} olma ehtimalı?`, ...mc(frac(w, 36), [frac(1, 6), frac(w, 12), frac(1, s)], x => x), e: `Bütün hallar 36; əlverişli: ${w}. P = ${w}/36 = ${frac(w, 36)}.` } },
+    gcdlcm() { const a = pick([12, 15, 18, 20]), b = pick([8, 9, 10, 24, 30].filter(x => x !== a)), L = a * b / gcd(a, b);
+      return { q: `Bir avtobus hər ${a} dəqiqədən, digəri hər ${b} dəqiqədən bir dayanacaqdan çıxır. 8:00-da birlikdə çıxdılar. Növbəti dəfə neçə dəqiqə sonra birlikdə çıxacaqlar?`, ...mc(L, [a * b, a + b, gcd(a, b)]), e: `ƏKOB(${a}, ${b}) = ${L} dəqiqə.` } },
+    ratio() { const a = R(1, 4), b = R(2, 5), c = R(3, 7), k = R(2, 9) * 10, T = (a + b + c) * k;
+      return { q: `${T} AZN ${a} : ${b} : ${c} nisbətində bölündü. Ən böyük pay?`, ...mc(Math.max(a, b, c) * k, [Math.round(T / 3), Math.min(a, b, c) * k, T - Math.max(a, b, c) * k]), e: `1 hissə = ${T} / ${a + b + c} = ${k}. Ən böyük: ${Math.max(a, b, c)} · ${k} = ${Math.max(a, b, c) * k}.` } },
+    poly() { const a = R(2, 9), b = R(1, a - 1);
+      return { q: `a + b = ${a + b}, ab = ${a * b}. a² + b² = ?`, ...mc(a * a + b * b, [(a + b) ** 2, (a + b) ** 2 + 2 * a * b, a * b * 2]), e: `a² + b² = (a + b)² − 2ab = ${(a + b) ** 2} − ${2 * a * b} = ${a * a + b * b}.` } },
+    linf() { const x = R(-4, 5), k1 = R(1, 4), k2 = -R(1, 4), b1 = R(-6, 6), y = k1 * x + b1, b2 = y - k2 * x;
+      const ln = (k, b) => `y = ${k === 1 ? "" : k === -1 ? "−" : k}x ${b >= 0 ? "+ " + b : "− " + -b}`;
+      return { q: `${ln(k1, b1)} və ${ln(k2, b2)} düz xətlərinin kəsişmə nöqtəsi?`, ...mc(`(${x}; ${y})`, [`(${y}; ${x})`, `(${-x}; ${y})`, `(${x}; ${-y})`], v => v), e: `${k1}x + ${b1} = ${k2}x + ${b2} → x = ${x}, y = ${y}.` } },
+  };
   function toSub(n) { return String(n).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]) }
   function sup(n) { return String(n).replace(/\d/g, d => "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]) }
-  window.GEN = G;
+  window.GEN = G; window.GEN4 = G4;
 })();
